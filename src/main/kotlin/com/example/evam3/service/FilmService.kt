@@ -12,19 +12,42 @@ class FilmService {
     @Autowired
     lateinit var filmRepository: FilmRepository
 
-    fun list ():List<Film>{
+    fun list(): List<Film> {
         return filmRepository.findAll()
     }
 
-    fun save (film:Film): Film{
-        try{
-            film.title?.takeIf { it.trim().isNotEmpty() }
-                ?: throw Exception("Film no debe ser vacio")
-            return filmRepository.save(film)
-        }
-        catch (ex: Exception){
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST,ex.message)
-        }
+    fun save(film: Film): Film {
+        // Verificar si el título no está vacío o compuesto solo por espacios en blanco
+        film.title?.takeIf { it.trim().isNotEmpty() }
+            ?: throw IllegalArgumentException("El título de la película no debe estar vacío")
 
+        return try {
+            filmRepository.save(film)
+        } catch (ex: Exception) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, ex.message)
+        }
+    }
+
+    fun update(film: Film): Film {
+        film.id?.let { filmRepository.findById(it) }
+            ?: throw NoSuchElementException("ID de película no encontrado")
+
+        return try {
+            filmRepository.save(film)
+        } catch (ex: Exception) {
+            throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al actualizar la película", ex)
+        }
+    }
+
+    fun delete (id: Long?):Boolean?{
+        try{
+            val response = id?.let { filmRepository.findById(it) }
+                ?: throw Exception("ID no existe")
+            filmRepository.deleteById(id!!)
+            return true
+        }
+        catch (ex:Exception){
+            throw ResponseStatusException(HttpStatus.NOT_FOUND,ex.message)
+        }
     }
 }
